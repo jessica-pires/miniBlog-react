@@ -34,7 +34,7 @@ const NavBar = () => {
     {user && (
       <>
         <li>
-        <NavLink to="/post/create">Novo post</NavLink>
+        <NavLink to="/posts/create">Novo post</NavLink>
       </li>
       <li>
         <NavLink to="/dashboard">Dashboard</NavLink>

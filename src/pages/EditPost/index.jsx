@@ -1,18 +1,37 @@
 import styles from './styles.module.css'
-import { useState } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { useAuthValue } from '../../context/AuthContext'
-import { useInsertDocument } from '../../hooks/useInsertDocument'
+import { useUpdateDocument } from '../../hooks/useUpdateDocument'
+import { useSinglePost } from '../../hooks/useSinglePost'
+import { useEffect , useState} from 'react'
 
-const CreatePost = () => {
+const EditPost = () => {
+
+    const { id } = useParams()
+    const {document: post , loading} = useSinglePost("posts" , id)
+
     const [title, setTitle] = useState("")
     const [image, setImage] = useState("")
     const [body, setBody] = useState("")
     const [tags, setTags] = useState([])
     const [formError, setFormError] = useState("")
-    const {insertDocument, response} = useInsertDocument("posts")
-    const navigate = useNavigate()
+
+    useEffect(() => {
+        if (post) {
+            setTitle(post.title || '');
+            setBody(post.body || '');
+            setImage(post.image || '');
+            const textTags = post.tagsArray?.join(', ') || '';
+            setTags(textTags);
+        }
+    }, [post])
+
+
+
+    
     const {user} = useAuthValue()
+    const {updateDocument, response} = useUpdateDocument("posts")
+    const navigate = useNavigate()
 
     const handleSubmit = (e) => {
         e.preventDefault()
@@ -36,26 +55,35 @@ const CreatePost = () => {
 
         if(formError)return
 
-        insertDocument({
+        const data = {
             title,
             image,
             body, 
             tagsArray, 
             uid: user.uid,
             createdBy: user.displayName
-        })
+        }
+        updateDocument(id, data)
 
         //redirect
-        navigate("/")
+        if (!response.error) {
+            navigate('/dashboard');
+        }
     }
 
+    if (loading) return <p>Carregando...</p>;
+
+    if (!post) return <p>Post não encontrado ou inválido.</p>;
+
     return (
-    <div className={styles.create_post}>
-        <h2>Criar post </h2>
-        <p>Compartilhe suas ideias e conhecimentos sobre qualquer assunto que desejar!</p>
-        <form onSubmit={handleSubmit}>
+    <div className={styles.edit_post}>
+        <h2>Editando post: {post.title}  </h2>
+        <p>Altere os dados do post como desejar!</p>
+        {post && (
+        <>
+            <form onSubmit={handleSubmit}>
             <label>
-                <span>Título</span>
+                <span>Título:</span>
                 <input 
                 type="text" 
                 name='title' 
@@ -77,6 +105,9 @@ const CreatePost = () => {
                 value={image || ""}
                 />
             </label>
+            <p className={styles.preview_title}>Preview da imagem atual:</p>
+            <img  className={styles.image_preview} src={post.image}
+            alt={post.title}/>
 
             <label>
                 <span>Conteúdo</span>
@@ -99,14 +130,16 @@ const CreatePost = () => {
                 />
             </label>
 
-            {!response.loading && <button className='btn'>Cadastrar</button>}
+            {!response.loading && <button className='btn'>Editar</button>}
             {response.loading && (<button className='btn'>Aguarde...</button>)}
             {response.error && <p className="error">{response.error}</p>}
             {formError && <p className="error">{formError}</p>}
 
         </form>
+        </>
+    )}
     </div>
     )
 }
 
-export default CreatePost
+export default EditPost
